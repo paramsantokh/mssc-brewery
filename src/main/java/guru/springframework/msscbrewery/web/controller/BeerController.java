@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,7 +18,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -24,6 +29,7 @@ import java.util.UUID;
  */
 @RequestMapping ("/api/v1/beer")
 @RestController
+@Validated
 public class BeerController {
   
   @Autowired
@@ -31,7 +37,7 @@ public class BeerController {
   
   
   @GetMapping ("/{beerId}")
-  public ResponseEntity<BeerDto> getBeer(@PathVariable UUID beerId) {
+  public ResponseEntity<BeerDto> getBeer(@Valid @PathVariable UUID beerId) {
     
     return new ResponseEntity<>(beerService.getBeerById(beerId), HttpStatus.OK);
   }
@@ -58,5 +64,18 @@ public class BeerController {
   @ResponseStatus (HttpStatus.NO_CONTENT)
   public void deleteBeer(@PathVariable UUID beerId) {
     beerService.deleteById(beerId);
+  }
+  
+  @ExceptionHandler (ConstraintViolationException.class)
+  public ResponseEntity<List> validationErrorHandler(ConstraintViolationException ex) {
+    List<String> errors = new ArrayList<>();
+    
+    ex.getConstraintViolations().forEach(voilation -> {
+                                           errors.add(voilation.getMessage());
+                                         }
+    
+    );
+    
+    return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
   }
 }
